@@ -1,0 +1,90 @@
+---
+title: "Validating the FireEdge Assessment"
+author: "RWS"
+date: "3/5/2021"
+output: html_document
+---
+
+## Import Packages and Settings
+
+```{r setup, include=TRUE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(haven)
+library(tidyverse)
+
+```
+
+Once the required packages and settings have been loaded, we can proceed to 
+import the focal dataset to begin the validation study. This is done below.
+
+```{r dataset, include = TRUE}
+
+val_data <- read_sav(file = "~/R-lang/FireEdge/data/dataset.sav")
+
+```
+
+We see that the dataset includes item-level data, which we eliminate and focus
+on the overall composite score with the criteria of job performance, while
+also retaining some race, gender, and study location variables for further
+analysis.
+
+```{r Sample_Gender_PieChart, include=TRUE}
+
+val_data %>% 
+  count(Gender) %>% 
+  filter(Gender == 1 | Gender == 2) %>% 
+  mutate(Gender = ifelse(Gender == 2, "Male", "Female")) %>% 
+  mutate(Percentage = scales::percent(n / sum(n))) %>% 
+  ggplot(aes(x = "", y = n, fill = Gender)) +
+  geom_bar(stat = "identity",  color = "white", show.legend = TRUE) +
+  coord_polar("y") +
+  theme_void(base_size = 14) +
+  scale_fill_manual(name= "", values = c("#CCCCCC", "#9E1C24")) +
+    labs(x = "", 
+         y = "", 
+         title = "Gender") +
+  geom_label(aes(label = Percentage), size=4, color = c("black", "white"), position = position_stack(vjust=0.5),show.legend = FALSE) +
+  theme(legend.position = "top")
+
+```
+```{r Sample_Race_PieChart, include=TRUE}
+
+val_data %>% 
+  mutate(Race = as.numeric(Race)) %>% 
+  count(Race) %>% 
+  filter(Race == 1 | Race == 3 | Race == 6) %>% 
+  mutate(Race = 
+           case_when(
+             Race == 1 ~ "African-American",
+             Race == 3 ~ "Hispanic",
+             Race == 6 ~ "Caucasian"
+           )) %>% 
+  mutate(Percentage = scales::percent(n / sum(n))) %>% 
+  ggplot(aes(x = "", y = n, fill = Race)) +
+  geom_bar(stat = "identity",  color = "white", show.legend = TRUE) +
+  coord_polar("y") +
+  theme_void(base_size = 14) +
+  scale_fill_manual(name= "", values = c("#CCCCCC", "#9E1C24", "#EA1D2E")) +
+    labs(x = "", 
+         y = "", 
+         title = "Race/Ethnicity") +
+  geom_label(aes(label = Percentage), size=4, color = c("black", "white", "white"), position = position_stack(vjust=0.5),show.legend = FALSE) +
+  theme(legend.position = "top")
+
+```
+
+```{r include=TRUE}
+
+val_data %>% 
+  select(
+    Study,
+    Gender,
+    Race,
+    crt_fnl,
+    
+  )
+
+```
+
