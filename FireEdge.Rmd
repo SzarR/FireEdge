@@ -1,90 +1,344 @@
 ---
-title: "Validating the FireEdge Assessment"
-author: "RWS"
-date: "3/5/2021"
-output: html_document
+title: "Validating the *FireEdge* Assessment"
+author: "Robert W. Szarek"
+date: "March 10, 2021"
+output:
+  html_document: default
+  pdf_document: default
 ---
 
-## Import Packages and Settings
+## Overview and Context
 
-```{r setup, include=TRUE}
+This document was created as an R Markdown file from within R-Studio. The
+benefits of using an R Markdown file for scientific research is the ability to 
+weave live code and theory into a single document, all the while providing 
+anybody reviewing this file an opportunity to reproduce the analyses and come
+up with the conclusions on their own machine. This document and the code
+contained herein was written with R version 4.0.2.
 
-knitr::opts_chunk$set(echo = TRUE)
+This file walks the user through a validation study in connection with the 
+*FireEdge* test, which is a cognitive and situation-based judgmenet test
+developed for the purposes of hiring entry-level firefighters. The analyses
+contained in this technical document are post-exam development, where we have
+a finalized test and overall test score on a number of participants who
+volunteered to participate in the research study. 
 
-library(haven)
+The purposes of this research study was to empirically demonstrate (or "validate")
+that the *FireEdge* test is able to predict on-the-job performance of firefighters.
+Such evidence would lend credence to an organization using the test to make
+selection-based decisions with the *FireEdge* and will additionally serve as
+a form of legal defensibility for the usage of such a test.
+
+The first bit of code, presented below, loads the tidyverse package to help
+with the manipulation of the dataset.
+
+```{r setup, include=TRUE, message=FALSE}
 library(tidyverse)
-
 ```
 
-Once the required packages and settings have been loaded, we can proceed to 
-import the focal dataset to begin the validation study. This is done below.
+## Data Import
+
+Once the tidyverse has been loaded, we can proceed to import a cleaned and
+scored dataset that contains a number of different variables required for 
+conducting this research study. The code below imports the data table into our
+local R environment.
 
 ```{r dataset, include = TRUE}
-
-val_data <- read_sav(file = "~/R-lang/FireEdge/data/dataset.sav")
-
+val_data <- read_rds(file = "~/R-lang/FireEdge/data/FireEdge_data.Rds")
 ```
 
-We see that the dataset includes item-level data, which we eliminate and focus
-on the overall composite score with the criteria of job performance, while
-also retaining some race, gender, and study location variables for further
-analysis.
+The original dataset includes item-level data, dimension-level data in conjunction with various
+other information concerning the criteria. As none of this is required to conduct
+the validation study, we focus on the overall composite score with the criteria
+of job performance, and drop all remaining variables from the data table. This
+helps ensure our study stays on track and we do not get side-tracked with variables
+that were not intended to be researched further.
 
-```{r Sample_Gender_PieChart, include=TRUE}
-
-val_data %>% 
-  count(Gender) %>% 
-  filter(Gender == 1 | Gender == 2) %>% 
-  mutate(Gender = ifelse(Gender == 2, "Male", "Female")) %>% 
-  mutate(Percentage = scales::percent(n / sum(n))) %>% 
-  ggplot(aes(x = "", y = n, fill = Gender)) +
-  geom_bar(stat = "identity",  color = "white", show.legend = TRUE) +
-  coord_polar("y") +
-  theme_void(base_size = 14) +
-  scale_fill_manual(name= "", values = c("#CCCCCC", "#9E1C24")) +
-    labs(x = "", 
-         y = "", 
-         title = "Gender") +
-  geom_label(aes(label = Percentage), size=4, color = c("black", "white"), position = position_stack(vjust=0.5),show.legend = FALSE) +
-  theme(legend.position = "top")
-
-```
-```{r Sample_Race_PieChart, include=TRUE}
-
-val_data %>% 
-  mutate(Race = as.numeric(Race)) %>% 
-  count(Race) %>% 
-  filter(Race == 1 | Race == 3 | Race == 6) %>% 
-  mutate(Race = 
-           case_when(
-             Race == 1 ~ "African-American",
-             Race == 3 ~ "Hispanic",
-             Race == 6 ~ "Caucasian"
-           )) %>% 
-  mutate(Percentage = scales::percent(n / sum(n))) %>% 
-  ggplot(aes(x = "", y = n, fill = Race)) +
-  geom_bar(stat = "identity",  color = "white", show.legend = TRUE) +
-  coord_polar("y") +
-  theme_void(base_size = 14) +
-  scale_fill_manual(name= "", values = c("#CCCCCC", "#9E1C24", "#EA1D2E")) +
-    labs(x = "", 
-         y = "", 
-         title = "Race/Ethnicity") +
-  geom_label(aes(label = Percentage), size=4, color = c("black", "white", "white"), position = position_stack(vjust=0.5),show.legend = FALSE) +
-  theme(legend.position = "top")
-
-```
-
-```{r include=TRUE}
-
-val_data %>% 
+```{r dataset_tidy, include = TRUE}
+val_data_tidy <-
+  val_data %>% 
   select(
     Study,
     Gender,
     Race,
-    crt_fnl,
-    
+    Final_Score,
+    Crit_Supv
+  ) %>% 
+  rename(
+    "JobPerformance" = Crit_Supv,
+    "FireEdge_Score" = Final_Score
   )
 
+str(val_data_tidy)
 ```
+
+The "chr" after the word Study indicates it is a character vector. We need to
+convert it to a factor instead as that is the proper categorization. Since we
+have included three seperate study locations, a factor variable would make more
+sense here because all three levels are explicitly known. The following code 
+converts the Study variable from a character vector to a factor vector.
+
+```{r recode_study, include=TRUE}
+val_data_tidy <-
+  val_data_tidy %>% 
+  mutate(Study = as_factor(Study))
+
+str(val_data_tidy$Study) #Check my work
+```
+
+## Descriptive Statistics
+
+Next, we begin to investigate the descriptive statistics concerning the
+supervisor ratings of job performance. The code below creates a table of
+information broken down by Study location, such as the average job performance
+score, the standard deviation of the distribution, and the minimum and maximum
+scores.
+
+```{r, descriptives_jp, include=TRUE}
+val_data_tidy %>%
+  group_by(Study) %>%
+  summarise(
+    .groups = "drop",
+    RawTotal = n(),
+    Missing = sum(is.na(JobPerformance)),
+    True_Sample = RawTotal - Missing,
+    Mean = mean(JobPerformance, na.rm = TRUE),
+    SD = sd(JobPerformance, na.rm = TRUE),
+    Min = min(JobPerformance, na.rm = TRUE),
+    Max = max(JobPerformance, na.rm = TRUE)
+  )
+```
+We see that the agency in Alabama had a total of 27  missing cases of supervisor
+ratings, while the Colorado agency had a total of 13 missing cases. The average
+scores are all consistent across the three study locations, as are the standard
+deviations, minimum and maximum scores. Next, we perform the same type of analysis
+for the *FireEdge* score.
+
+```{r, descriptives_fs, include=TRUE}
+val_data_tidy %>%
+  group_by(Study) %>%
+  summarise(
+    .groups = "drop",
+    RawTotal = n(),
+    Missing = sum(is.na(FireEdge_Score)),
+    True_Sample = RawTotal - Missing,
+    Mean = mean(FireEdge_Score, na.rm = TRUE),
+    SD = sd(FireEdge_Score, na.rm = TRUE),
+    Min = min(FireEdge_Score, na.rm = TRUE),
+    Max = max(FireEdge_Score, na.rm = TRUE)
+  )
+```
+The means all fall in line quite closely, with an average score of around a 75.00
+and a standard deviation around 6.5. Minimum and maximum scores were all quite
+consistent across the three studies. Once we have taken a look at these 
+statistics, we create our finalized dataset by removing the missing data that
+we observed in the job performance ratings with the following code.
+
+```{r, remove_missing_jp, include=TRUE}
+val_data_tidy <-
+val_data_tidy %>%
+  filter(!is.na(JobPerformance))
+```
+
+We remove the missing data points and determine we have a total of `r nrow(val_data_tidy)`
+rows of data to use for the validation study. Next, we create a series of charts
+to determine the number of participants based on Race, Gender and Study.
+
+The first pie chart presents counts of Gender represented in the validation study.
+Unfortunately, a general trend in firefighting is that males usually outweigh
+females by a considerable portion. This is reflected in the sample size we have
+obtained where there are significantly more males than females. Such large
+degrees of difference are therefore not uncommon and care must be taken to 
+ensure the study does attempt to maximize female participation rates to the
+highest degree possible.
+
+```{r Gender_PieChart, include=TRUE,fig.align='center'}
+val_data_tidy %>%
+  count(Gender) %>%
+  filter(Gender == "Male" | Gender == "Female") %>% 
+  mutate(Percentage = scales::percent(n / sum(n))) %>%
+  ggplot(aes(x = "", y = n, fill = Gender)) +
+  geom_bar(stat = "identity",  color = "white", show.legend = TRUE) +
+  coord_polar("y") +
+  theme_void(base_size = 16) +
+  scale_fill_manual(name= "", values = c("#CCCCCC", "#9E1C24")) +
+    labs(x = "",
+         y = "",
+         title = "Gender") +
+  geom_label(aes(label = Percentage), size=5, color = c("black", "white"), 
+             position = position_stack(vjust=0.5),show.legend = FALSE) +
+  theme(legend.position = "top")
+```
+
+The second pie chart counts the Race/Ethnicity breakdown for participants. We can see
+that minority representation rates are not as high as would be ideal, which would
+have been in the 20-25% range. However, we still have a robust representation of
+minority candidates for the study to ensure the sample represents the population
+of firefighters in general. The original stratified sampling plan sought to 
+ensure minorities are equally represented within the sampling plan.
+
+```{r Race_PieChart, include=TRUE, fig.align='center'}
+val_data_tidy %>%
+  count(Race) %>%
+  filter(Race == "Hispanic" | Race == "White" | Race == "Black") %>% 
+  mutate(Percentage = scales::percent(n / sum(n))) %>%
+  ggplot(aes(x = "", y = n, fill = Race)) +
+  geom_bar(stat = "identity",  color = "white", show.legend = TRUE) +
+  coord_polar("y") +
+  theme_void(base_size = 16) +
+  scale_fill_manual(name= "", values = c( "#EA1D2E", "#CCCCCC", "#9E1C24")) +
+    labs(x = "",
+         y = "",
+         title = "Race") +
+  geom_label(aes(label = Percentage), size=5, color = c("white", "black", "white"), 
+             position = position_stack(vjust=0.5),show.legend = FALSE) +
+  theme(legend.position = "top")
+```
+
+The final chart outlines the location from which participants were pulled. 
+The majority of participants derived from a firefighting agency located in 
+Colorado, with 64.6% of the total sample. Maryland was next, with 21.2% and 
+Alabama was last, with 14.1%. As we do not expect the firefighting job to differ
+significantly across the nation, for the purposes of streamlining this validation
+study we collapsed all three agencies into a single study.
+
+```{r Study_PieChart, include=TRUE, fig.align='center'}
+val_data_tidy %>%
+  count(Study) %>%
+  mutate(Percentage = scales::percent(n / sum(n))) %>%
+  ggplot(aes(x = "", y = n, fill = Study)) +
+  geom_bar(stat = "identity",  color = "white", show.legend = TRUE) +
+  coord_polar("y") +
+  theme_void(base_size = 16) +
+  scale_fill_manual(name= "", values = c("#CCCCCC", "#9E1C24", "#EA1D2E")) +
+    labs(x = "",
+         y = "",
+         title = "Study") +
+  geom_label(aes(label = Percentage), size=5, color = c("black", "white", "white"), 
+             position = position_stack(vjust=0.5),show.legend = FALSE) +
+  theme(legend.position = "top")
+```
+
+In summary, the sample size obtained for the purposes of this validation study
+were found to be representative of the population in general. We therefore move
+on to conducting correlational analyses and linear regression modelling.
+
+## Pearson Correlation Analysis
+
+A correlation coefficient seeks to establish a relationship between two 
+variables. In this case, we seek to measure the level of association between the
+*FireEdge* test score and job performance ratings. A positive correlation 
+coefficient would indicate that as one variable increases, so does the other. A
+negative correlation coefficient would indicate that if one variable increases
+in value, the other variable decreases. For the purposes of this study, we seek
+to confirm the former.
+
+THe results of the analysis are presented below. Specifically, we obtained a
+correlation coefficient of .273. We then conducted a Student's T-test on the
+value to test whether the obtained correlation is significantly different than 
+zero. The results of the t-test were very significant, *t*(295) = 4.884, *p* < .001. 
+which is statistically significant.
+
+```{r correlations, include=TRUE}
+cor.test(x = val_data_tidy$FireEdge_Score,
+         y = val_data_tidy$JobPerformance,
+         exact = TRUE,
+         method = "pearson")
+```
+
+We conclude with the t-test that the observed correlation does empirically
+demonstrate a significant relationship between test scores and job performance.
+The linear regression model will further provide a visual means of investigating
+this relationship.
+
+## Linear Regression Model
+
+A linear regression model seeks to summarize the relationship between two
+variables with a single line of best fit. This line of best fit seeks to minimize
+the error between an actual observed value and the predicted value. Furthermore,
+such a relationship could then be used to infer somebody's job performance rating
+given their score on the *FireEdge* test. The code below runs the linear regression
+where the *FireEdge* test score is the predictor, or, independent variable. The
+dependent variable, or outome variable, is job performance. We seek to predict 
+job performance from test scores.
+
+```{r}
+summary(
+lm(JobPerformance ~ FireEdge_Score,
+   data = val_data_tidy)
+)
+```
+
+The linear regression model looks promising with the results from the model. Including
+the *FireEdge* score as a predictor had a significant t-test value of *t* = 4.884, 
+*p* < .000. The multiple r-squared was unfortunately not that high, with only .07
+of the observed variance being explained by the predictor. The ovearll F-test was
+additionally significant, indicating that the model as a whole was significant at 
+*p* < .000. The visualization below shows the extent of the relationship in 
+addition with the relevant histograms for each of the two variables drawn in the
+margins. We see that the *FireEdge* test scores are negatively skewed, with a 
+significant portion of scores on the higher end of the scale. The job performance
+ratings followed more of a normal distribution.
+
+```{r Regression_Graphic, include=TRUE, fig.align='center', message=FALSE}
+lin_reg_graph <-
+ggplot(val_data_tidy, aes(FireEdge_Score, JobPerformance)) +
+  geom_point(size = 4, color = "black") +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(y = "Job Performance",
+       x = "FireEdge Score") +
+  geom_point(size = 4.5, color = "#B11822") +
+  theme_bw(base_family = "sans", base_size = 12) +
+  theme(text = element_text(size = 14),
+        axis.text = element_text(colour = "black"))
+lin_reg_graph_final <-
+  ggExtra::ggMarginal(lin_reg_graph,
+                      type = "histogram",
+                      fill = "#B11822",
+                      size = 5)
+
+lin_reg_graph_final
+```
+
+## Analysis of Variance by Race
+
+Our final analysis seeks to determine if participants who identified across
+different ethnicities performed significantly better or worse than any other
+class. Ideally, we'd like to ensure our test functions similarly across 
+Race, Gender, etc. If there are differences in the test by Race, we could
+potentially have to investigate further in order to determine which component
+of the examination is driving the differences.
+
+```{r ANOVA_Race, include=TRUE}
+summary(
+aov(FireEdge_Score ~ Race, data = val_data_tidy)
+)
+```
+
+The Analysis of Variance, or, ANOVA for short, measures the variance across
+the different racial groups on *FireEdge* test scores. The resulting test 
+statistic, known as the omnibus F-ratio, was non-significant in this study:
+*F*(4, 274) = 0.663, *p* > .618. The *p* value would need to be less than .05
+in order for us to reject the null hypothesis and conclude that significant
+differences exist across Race on *FireEdge* test scores.
+
+Finally, an easy-to-explain way to visually demonstrate the disparity between
+means on a continuous variable is a boxplot chart. Such a chart places the 
+score value on the y-axis, and the various levels of racial identity on the 
+x-axis. The degree of height difference between the various boxes show the
+levels of difference.
+
+```{r Boxplot_ANOVA, include=TRUE}
+val_data_tidy %>% 
+  filter(Race == "Black" | Race == "White" | Race == "Hispanic") %>% 
+  ggplot(aes(x=Race, y=FireEdge_Score)) + 
+  geom_boxplot(fill = "#9E1C24", width= 0.5, alpha = 0.9) +
+  theme_minimal(base_size = 16,base_family = "sans") +
+    labs(x = "Race/Ethnicity",
+         y = "FireEdge Score") +
+  theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+## Conclusion
 
