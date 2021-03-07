@@ -7,17 +7,25 @@ output:
   pdf_document: default
 ---
 
-## Overview and Context
+## 1. Overview and Context
 
 This document was created as an R Markdown file from within R-Studio. The
 benefits of using an R Markdown file for scientific research is the ability to 
 weave live code and theory into a single document, all the while providing 
-anybody reviewing this file an opportunity to reproduce the analyses and come
-up with the conclusions on their own machine. This document and the code
-contained herein was written with R version 4.0.2.
+the reader a clear look into the analyses conducted to reach the various
+conclusions outlined in this study. Such reproducible analyses help make 
+scientific studies more transparent and accessible to all stakeholders.
 
-This file walks the user through a validation study in connection with the 
-*FireEdge* test, which is a cognitive and situation-based judgmenet test
+This research study walks the user through a validation study to empirically
+demonstrate a positive relationship between scores on the *FireEdge* test with
+ratings of job performance. The benefits of a successful study include:
+
+* Marketing *FireEdge* as a proven screening device to select talent
+* Providing legal defensibility for using the *FireEdge*
+* Helping minimize bias and adverse impact in observed results
+
+in connection with the 
+*FireEdge* test, which is a cognitive and situation-based judgment test
 developed for the purposes of hiring entry-level firefighters. The analyses
 contained in this technical document are post-exam development, where we have
 a finalized test and overall test score on a number of participants who
@@ -25,23 +33,25 @@ volunteered to participate in the research study.
 
 The purposes of this research study was to empirically demonstrate (or "validate")
 that the *FireEdge* test is able to predict on-the-job performance of firefighters.
-Such evidence would lend credence to an organization using the test to make
-selection-based decisions with the *FireEdge* and will additionally serve as
-a form of legal defensibility for the usage of such a test.
+Three statistical analyses were conducted in this study:
 
-The first bit of code, presented below, loads the tidyverse package to help
-with the manipulation of the dataset.
+* Analysis of Variance (ANOVA)
+* Ordinary Least Squares (OLS) Linear Regression
+* Pearson Product Moment Correlation with T-test
+
+To kick the study off, we first load the tidyverse package to ease the
+manipulation of data that is required to run the analyses outlined above.
 
 ```{r setup, include=TRUE, message=FALSE}
 library(tidyverse)
 ```
 
-## Data Import
+## 2. Data Import
 
-Once the tidyverse has been loaded, we can proceed to import a cleaned and
-scored dataset that contains a number of different variables required for 
-conducting this research study. The code below imports the data table into our
-local R environment.
+Once the tidyverse has been loaded, we can proceed to import the cleaned and
+scored dataset that contains the necessary variables required for conducting 
+this research study. The code below imports the data table into our local R 
+environment.
 
 ```{r dataset, include = TRUE}
 val_data <- read_rds(file = "~/R-lang/FireEdge/data/FireEdge_data.Rds")
@@ -50,12 +60,10 @@ val_data <- read_rds(file = "~/R-lang/FireEdge/data/FireEdge_data.Rds")
 The original dataset includes item-level data, dimension-level data in conjunction with various
 other information concerning the criteria. As none of this is required to conduct
 the validation study, we focus on the overall composite score with the criteria
-of job performance, and drop all remaining variables from the data table. This
-helps ensure our study stays on track and we do not get side-tracked with variables
-that were not intended to be researched further.
+of job performance, and drop all remaining variables from the data table.
 
 ```{r dataset_tidy, include = TRUE}
-val_data_tidy <-
+val_data <-
   val_data %>% 
   select(
     Study,
@@ -67,26 +75,21 @@ val_data_tidy <-
   rename(
     "JobPerformance" = Crit_Supv,
     "FireEdge_Score" = Final_Score
-  )
-
-str(val_data_tidy)
-```
-
-The "chr" after the word Study indicates it is a character vector. We need to
-convert it to a factor instead as that is the proper categorization. Since we
-have included three seperate study locations, a factor variable would make more
-sense here because all three levels are explicitly known. The following code 
-converts the Study variable from a character vector to a factor vector.
-
-```{r recode_study, include=TRUE}
-val_data_tidy <-
-  val_data_tidy %>% 
+  ) %>% 
   mutate(Study = as_factor(Study))
 
-str(val_data_tidy$Study) #Check my work
+str(val_data)
 ```
 
-## Descriptive Statistics
+In the condensed data table, we have the following variables:
+
+* Study is the location of the agency participating in the validation study.
+* Gender is the gender identity of the study participant.
+* Race is the race of the study participant.
+* FireEdge_Score is the final score on the FireEdge test.
+* JobPerformance is the supervisory rating of job performance.
+
+## 3. Descriptive Statistics
 
 Next, we begin to investigate the descriptive statistics concerning the
 supervisor ratings of job performance. The code below creates a table of
@@ -95,7 +98,7 @@ score, the standard deviation of the distribution, and the minimum and maximum
 scores.
 
 ```{r, descriptives_jp, include=TRUE}
-val_data_tidy %>%
+val_data %>%
   group_by(Study) %>%
   summarise(
     .groups = "drop",
@@ -108,14 +111,14 @@ val_data_tidy %>%
     Max = max(JobPerformance, na.rm = TRUE)
   )
 ```
-We see that the agency in Alabama had a total of 27  missing cases of supervisor
+We see that the agency in Alabama had a total of 27  missing cases of performance
 ratings, while the Colorado agency had a total of 13 missing cases. The average
-scores are all consistent across the three study locations, as are the standard
-deviations, minimum and maximum scores. Next, we perform the same type of analysis
-for the *FireEdge* score.
+job performance ratings are all consistent across the three study locations, as are 
+the standard deviations, minimum and maximum scores. Next, we perform the same 
+type of analysis for the *FireEdge* score.
 
 ```{r, descriptives_fs, include=TRUE}
-val_data_tidy %>%
+val_data %>%
   group_by(Study) %>%
   summarise(
     .groups = "drop",
@@ -135,12 +138,12 @@ statistics, we create our finalized dataset by removing the missing data that
 we observed in the job performance ratings with the following code.
 
 ```{r, remove_missing_jp, include=TRUE}
-val_data_tidy <-
-val_data_tidy %>%
+val_data <-
+val_data %>%
   filter(!is.na(JobPerformance))
 ```
 
-We remove the missing data points and determine we have a total of `r nrow(val_data_tidy)`
+We remove the missing data points and determine we have a total of `r nrow(val_data)`
 rows of data to use for the validation study. Next, we create a series of charts
 to determine the number of participants based on Race, Gender and Study.
 
@@ -153,7 +156,7 @@ ensure the study does attempt to maximize female participation rates to the
 highest degree possible.
 
 ```{r Gender_PieChart, include=TRUE,fig.align='center'}
-val_data_tidy %>%
+val_data %>%
   count(Gender) %>%
   filter(Gender == "Male" | Gender == "Female") %>% 
   mutate(Percentage = scales::percent(n / sum(n))) %>%
@@ -170,7 +173,7 @@ val_data_tidy %>%
   theme(legend.position = "top")
 ```
 
-The second pie chart counts the Race/Ethnicity breakdown for participants. We can see
+The second pie chart counts the Race breakdown for participants. We can see
 that minority representation rates are not as high as would be ideal, which would
 have been in the 20-25% range. However, we still have a robust representation of
 minority candidates for the study to ensure the sample represents the population
@@ -178,7 +181,7 @@ of firefighters in general. The original stratified sampling plan sought to
 ensure minorities are equally represented within the sampling plan.
 
 ```{r Race_PieChart, include=TRUE, fig.align='center'}
-val_data_tidy %>%
+val_data %>%
   count(Race) %>%
   filter(Race == "Hispanic" | Race == "White" | Race == "Black") %>% 
   mutate(Percentage = scales::percent(n / sum(n))) %>%
@@ -203,7 +206,7 @@ significantly across the nation, for the purposes of streamlining this validatio
 study we collapsed all three agencies into a single study.
 
 ```{r Study_PieChart, include=TRUE, fig.align='center'}
-val_data_tidy %>%
+val_data %>%
   count(Study) %>%
   mutate(Percentage = scales::percent(n / sum(n))) %>%
   ggplot(aes(x = "", y = n, fill = Study)) +
@@ -221,27 +224,33 @@ val_data_tidy %>%
 
 In summary, the sample size obtained for the purposes of this validation study
 were found to be representative of the population in general. We therefore move
-on to conducting correlational analyses and linear regression modelling.
+on to conducting a correlation and linear regression modeling.
 
-## Pearson Correlation Analysis
+## 4. Pearson Correlation Analysis
 
 A correlation coefficient seeks to establish a relationship between two 
 variables. In this case, we seek to measure the level of association between the
 *FireEdge* test score and job performance ratings. A positive correlation 
 coefficient would indicate that as one variable increases, so does the other. A
 negative correlation coefficient would indicate that if one variable increases
-in value, the other variable decreases. For the purposes of this study, we seek
-to confirm the former.
+in value, the other variable decreases. In this particular example, a negative
+relationship would mean that as test scores go up, job performance goes down, a 
+result we definitely would not like to see! We therefore hypothesize that our
+correlation will yield a significant, positive association between the two 
+variables.
 
 THe results of the analysis are presented below. Specifically, we obtained a
 correlation coefficient of .273. We then conducted a Student's T-test on the
 value to test whether the obtained correlation is significantly different than 
 zero. The results of the t-test were very significant, *t*(295) = 4.884, *p* < .001. 
-which is statistically significant.
+This tells us that the calculated correlation, or relationship between the
+two variables is significantly different than zero, which helps us gain
+certainty around the relationship between *FireEdge* test scores and job
+performance.
 
 ```{r correlations, include=TRUE}
-cor.test(x = val_data_tidy$FireEdge_Score,
-         y = val_data_tidy$JobPerformance,
+cor.test(x = val_data$FireEdge_Score,
+         y = val_data$JobPerformance,
          exact = TRUE,
          method = "pearson")
 ```
@@ -249,9 +258,9 @@ cor.test(x = val_data_tidy$FireEdge_Score,
 We conclude with the t-test that the observed correlation does empirically
 demonstrate a significant relationship between test scores and job performance.
 The linear regression model will further provide a visual means of investigating
-this relationship.
+the degree of this relationship.
 
-## Linear Regression Model
+## 5. Linear Regression Model
 
 A linear regression model seeks to summarize the relationship between two
 variables with a single line of best fit. This line of best fit seeks to minimize
@@ -265,14 +274,14 @@ job performance from test scores.
 ```{r}
 summary(
 lm(JobPerformance ~ FireEdge_Score,
-   data = val_data_tidy)
+   data = val_data)
 )
 ```
 
 The linear regression model looks promising with the results from the model. Including
 the *FireEdge* score as a predictor had a significant t-test value of *t* = 4.884, 
 *p* < .000. The multiple r-squared was unfortunately not that high, with only .07
-of the observed variance being explained by the predictor. The ovearll F-test was
+of the observed variance being explained by the predictor. The overall F-test was
 additionally significant, indicating that the model as a whole was significant at 
 *p* < .000. The visualization below shows the extent of the relationship in 
 addition with the relevant histograms for each of the two variables drawn in the
@@ -282,7 +291,7 @@ ratings followed more of a normal distribution.
 
 ```{r Regression_Graphic, include=TRUE, fig.align='center', message=FALSE}
 lin_reg_graph <-
-ggplot(val_data_tidy, aes(FireEdge_Score, JobPerformance)) +
+ggplot(val_data, aes(FireEdge_Score, JobPerformance)) +
   geom_point(size = 4, color = "black") +
   geom_smooth(method = "lm", se = TRUE) +
   labs(y = "Job Performance",
@@ -300,7 +309,7 @@ lin_reg_graph_final <-
 lin_reg_graph_final
 ```
 
-## Analysis of Variance by Race
+## 6. Analysis of Variance by Race
 
 Our final analysis seeks to determine if participants who identified across
 different ethnicities performed significantly better or worse than any other
@@ -311,7 +320,7 @@ of the examination is driving the differences.
 
 ```{r ANOVA_Race, include=TRUE}
 summary(
-aov(FireEdge_Score ~ Race, data = val_data_tidy)
+aov(FireEdge_Score ~ Race, data = val_data)
 )
 ```
 
@@ -328,8 +337,8 @@ score value on the y-axis, and the various levels of racial identity on the
 x-axis. The degree of height difference between the various boxes show the
 levels of difference.
 
-```{r Boxplot_ANOVA, include=TRUE}
-val_data_tidy %>% 
+```{r Boxplot_ANOVA, include=TRUE, fig.align='center'}
+val_data %>% 
   filter(Race == "Black" | Race == "White" | Race == "Hispanic") %>% 
   ggplot(aes(x=Race, y=FireEdge_Score)) + 
   geom_boxplot(fill = "#9E1C24", width= 0.5, alpha = 0.9) +
@@ -339,6 +348,18 @@ val_data_tidy %>%
   theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
+## 7. Conclusion
 
-## Conclusion
+This research study sought to investigate and establish a linear relationship
+between test scores on the *FireEdge* with ratings of job performance. The
+conclusions reached based on the data and evidence were favorable, with a
+significant Pearson product moment correlation (*r* = .273) being observed in
+the study. Next, a linear regression model was run to regress test scores on
+job performance, which resulted in the line of best fit trending in an upward
+and positive direction. Finally, an analysis of variance was conducted in order
+to ascertain no bias existed in test scores across different Ethnicities.
+
+In summary, the conclusions reached in this study were significant, providing
+empirical evidence that the *FireEdge* does indeed predict job performance scores.
+Such information can be used to better inform the clients who use our products.
 
