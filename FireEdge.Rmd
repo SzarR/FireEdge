@@ -3,51 +3,52 @@ title: "Validating the *FireEdge* Assessment"
 author: "Robert W. Szarek"
 date: "March 10, 2021"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
-
-## 1. Overview and Context
 
 This document was created as an R Markdown file from within R-Studio. The
 benefits of using an R Markdown file for scientific research include the ability to 
 weave code and theory into a single document, all the while providing 
 the reader a clear look into the analyses conducted to reach the various
-conclusions presented in the study. Such reproducible analyses help make 
+conclusions presented. Such reproducible analyses help make 
 scientific studies more transparent and accessible to stakeholders.
 
-This research study walks the user through a validation study to empirically
-demonstrate a positive and significant relationship between test scores on the *FireEdge*
-with ratings of job performance. The benefits of a successful research study include:
-
-* Marketing *FireEdge* as a proven screening device to select talent
-* Providing a legal framework for using the *FireEdge* for selection
-* Demonstrating criterion-related test validity
-* Helping minimize bias and ensure our test is fair
+## 1. Overview and Context
 
 A team of I/O Psychologists in an external consulting firm developed the *FireEdge*
 test as a cognitive and situation-based judgment assessment to hire entry-level 
 firefighters. The analyses contained in this technical document pick up after
-the *FireEdge* examination was constructed and pilot tested. The finalized test
-scores are provided in the validation dataset that is used to run all analyses
-in this technical report.
+the *FireEdge* examination was constructed and pilot tested. The final tool is
+a 150-question exam that takes two hours to administer.
+
+This research study walks the user through a validation study to empirically
+demonstrate a positive and significant relationship between the test scores on the 
+newly developed *FireEdge* test with supervisory ratings of job performance. The 
+benefits of a successful research study include:
+
+* Marketing *FireEdge* as a proven screening device to select top-performing talent
+* Providing a legal framework for using the *FireEdge* for selection
+* Demonstrating criterion-related test validity
+* Helping minimize bias and ensure the test is fair
 
 For the purposes of testing our hypotheses, we employed three unique statistical
 techniques:
 
-* Pearson Product Moment Correlation with t-test to establish a positive correlation between our predictor and outcome
-* Ordinary Least Squares (OLS) Linear Regression to create a line of best fit
-* Analysis of Variance (ANOVA) to investigate *FireEdge* scores by Race
+* Pearson Product Moment Correlation with t-test to establish a correlation
+* Ordinary Least Squares (OLS) Linear Regression to model a line of best fit
+* Analysis of Variance (ANOVA) to investigate differences in *FireEdge* scores by Race
 
 Our hypotheses were two-fold:
 
 * Establish a significant, positive relationship between *FireEdge* test scores and job performance
-* Ensure our *FireEdge* test scores are not biased across different racial groups
+* Ensure our *FireEdge* test scores are not biased or skewed across different racial groups
 
-To begin running the analysis, we load the tidyverse package to ease the manipulation 
-of data and provide an intuitive interface for readers to understand our code structure. 
+To begin the research study, we load the tidyverse package to ease the manipulation 
+of data and provide an intuitive interface for readers to understand our code structure,
+as the tidyverse framework is modeled on traditional SQL queries. 
 
-```{r setup, include=TRUE, message=FALSE}
+```{r setup, include=TRUE, message=TRUE}
 library(tidyverse)
 ```
 
@@ -55,7 +56,10 @@ library(tidyverse)
 
 Once the tidyverse has been loaded, we import the cleaned and scored dataset that 
 contains the necessary variables required for testing the hypotheses associated with
-the research study. The code below imports the data table into our local R environment.
+the research study. The procedure of cleaning, scoring and refactoring the test
+data will not be covered in this research study. Instead, we are already provided
+a finalized version of the dataset. The code below imports the data table into our 
+global R environment.
 
 ```{r dataset, include = TRUE}
 val_data <- read_rds(file = "~/R-lang/FireEdge/data/FireEdge_data.Rds")
@@ -63,8 +67,10 @@ val_data <- read_rds(file = "~/R-lang/FireEdge/data/FireEdge_data.Rds")
 
 The original dataset includes item-level data and dimension-level data in conjunction with various
 other variables concerning the criteria. As none of this is required to conduct
-the validation study, we focus on the overall composite score with the criteria
-of job performance, and drop all remaining variables from the data table.
+our validation study, we focus on the overall composite score with the criteria
+of job performance, and drop all remaining variables from the data table. This
+helps ensure we do not run analyses on incorrect columns at a later point in 
+this analysis.
 
 ```{r dataset_tidy, include = TRUE}
 val_data <-
@@ -87,11 +93,11 @@ str(val_data)
 
 In the condensed data table, we have the following variables:
 
-* Study is the location of the agency participating in the validation study.
-* Gender is the gender identity of the study participant.
-* Race is the race of the study participant.
-* FireEdge_Score is the final score on the *FireEdge* test.
-* JobPerformance is the supervisory rating of job performance.
+* **Study** is the location of the agency participating in the validation study.
+* **Gender** is the gender identity of the study participant.
+* **Race** is the race of the study participant.
+* **FireEdge_Score** is the final score on the *FireEdge* test.
+* **JobPerformance** is the supervisory rating of job performance.
 
 ## 3. Descriptive Statistics
 
@@ -153,7 +159,7 @@ val_data %>%
 ```
 
 We remove the missing data points and determine we have a total of `r nrow(val_data)`
-cases for our hypothesis testing. Next, we create a series of visualizations
+cases to test our hypotheses with. Next, we create a series of visualizations
 to determine the number of participants based on Race, Gender and Study that are
 in our study.
 
@@ -188,7 +194,7 @@ that minority representation rates are not as high as would be ideal, which woul
 have been in the 20-25% range. However, we still have a robust representation of
 minority candidates for the study to ensure the sample represents the population
 of firefighters in general. The original stratified sampling plan sought to 
-ensure minorities are equally represented within the sampling plan.
+ensure minorities were equally represented within the sampling plan.
 
 ```{r Race_PieChart, include=TRUE, fig.align='center'}
 val_data %>%
@@ -233,8 +239,9 @@ val_data %>%
 ```
 
 In summary, the sample size obtained for the purposes of this validation study
-were found to be representative of the population in general. We therefore move
-on to conducting our statistical significance testing.
+were found to be diverse enough to represent the population in general. Additionally, the
+sample size itself was found to be adequate for the purposes of statistical 
+significance testing, and we therefore proceed to conducting our various analyses.
 
 ## 4. Pearson Correlation Analysis
 
@@ -317,6 +324,7 @@ ggplot(val_data, aes(FireEdge_Score, JobPerformance)) +
   theme_bw(base_family = "sans", base_size = 12) +
   theme(text = element_text(size = 14),
         axis.text = element_text(colour = "black"))
+
 lin_reg_graph_final <-
   ggExtra::ggMarginal(lin_reg_graph,
                       type = "histogram",
@@ -380,13 +388,14 @@ val_data %>%
 ## 7. Conclusion
 
 This research study sought to investigate and establish a linear relationship
-between test scores on the *FireEdge* with ratings of job performance. The
-conclusions reached based on the data and evidence were favorable, with a
-significant Pearson product moment correlation (*r* = .273) being observed in
-the study. Next, a linear regression model was run to regress test scores on
+between test scores on the *FireEdge* with ratings of job performance. 
+
+The conclusions reached based on the data and evidence were favorable, with a
+significant Pearson product moment correlation (*r* = .273) being calculated.
+Next, a linear regression model was run to regress test scores on
 job performance, which resulted in the line of best fit trending in an upward
 and positive direction. Finally, an analysis of variance was conducted in order
-to ascertain no bias existed in test scores across different races
+to ascertain no bias existed in test scores across different races.
 
 In summary, the conclusions reached in this study were significant, providing
 empirical evidence that the *FireEdge* does indeed predict job performance scores.
@@ -397,7 +406,7 @@ content, when properly modeled, does predict a focal criteria of interest for
 clients. Further analyses could be conducted to determine facets of the *FireEdge*
 which do not predict as well as others, and attempt to iterate on the examination
 to help deliver an even better product or solution. Larger scale analyses could
-also be conducted after the test has been deployed to the population. Wide-scale
-validation studies could help provide significant sample sizes to bolster the
-results found in this study.
-
+also be conducted after the test has been deployed to the population, with sample
+sizes into the thousands. We'd be able to re-calculate several of the statistics on
+a pre-established basis to ensure our test continues to function as intended once
+deployed to the population.
