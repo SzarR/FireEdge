@@ -10,37 +10,42 @@ output:
 ## 1. Overview and Context
 
 This document was created as an R Markdown file from within R-Studio. The
-benefits of using an R Markdown file for scientific research is the ability to 
-weave live code and theory into a single document, all the while providing 
+benefits of using an R Markdown file for scientific research include the ability to 
+weave code and theory into a single document, all the while providing 
 the reader a clear look into the analyses conducted to reach the various
-conclusions outlined in this study. Such reproducible analyses help make 
-scientific studies more transparent and accessible to all stakeholders.
+conclusions presented in the study. Such reproducible analyses help make 
+scientific studies more transparent and accessible to stakeholders.
 
 This research study walks the user through a validation study to empirically
-demonstrate a positive relationship between scores on the *FireEdge* test with
-ratings of job performance. The benefits of a successful study include:
+demonstrate a positive and significant relationship between test scores on the *FireEdge*
+with ratings of job performance. The benefits of a successful research study include:
 
 * Marketing *FireEdge* as a proven screening device to select talent
-* Providing legal defensibility for using the *FireEdge*
-* Helping minimize bias and adverse impact in observed results
+* Providing a legal framework for using the *FireEdge* for selection
+* Demonstrating criterion-related test validity
+* Helping minimize bias and ensure our test is fair
 
-in connection with the 
-*FireEdge* test, which is a cognitive and situation-based judgment test
-developed for the purposes of hiring entry-level firefighters. The analyses
-contained in this technical document are post-exam development, where we have
-a finalized test and overall test score on a number of participants who
-volunteered to participate in the research study. 
+A team of I/O Psychologists in an external consulting firm developed the *FireEdge*
+test as a cognitive and situation-based judgment assessment to hire entry-level 
+firefighters. The analyses contained in this technical document pick up after
+the *FireEdge* examination was constructed and pilot tested. The finalized test
+scores are provided in the validation dataset that is used to run all analyses
+in this technical report.
 
-The purposes of this research study was to empirically demonstrate (or "validate")
-that the *FireEdge* test is able to predict on-the-job performance of firefighters.
-Three statistical analyses were conducted in this study:
+For the purposes of testing our hypotheses, we employed three unique statistical
+techniques:
 
-* Analysis of Variance (ANOVA)
-* Ordinary Least Squares (OLS) Linear Regression
-* Pearson Product Moment Correlation with T-test
+* Pearson Product Moment Correlation with t-test to establish a positive correlation between our predictor and outcome
+* Ordinary Least Squares (OLS) Linear Regression to create a line of best fit
+* Analysis of Variance (ANOVA) to investigate *FireEdge* scores by Race
 
-To kick the study off, we first load the tidyverse package to ease the
-manipulation of data that is required to run the analyses outlined above.
+Our hypotheses were two-fold:
+
+* Establish a significant, positive relationship between *FireEdge* test scores and job performance
+* Ensure our *FireEdge* test scores are not biased across different racial groups
+
+To begin running the analysis, we load the tidyverse package to ease the manipulation 
+of data and provide an intuitive interface for readers to understand our code structure. 
 
 ```{r setup, include=TRUE, message=FALSE}
 library(tidyverse)
@@ -48,17 +53,16 @@ library(tidyverse)
 
 ## 2. Data Import
 
-Once the tidyverse has been loaded, we can proceed to import the cleaned and
-scored dataset that contains the necessary variables required for conducting 
-this research study. The code below imports the data table into our local R 
-environment.
+Once the tidyverse has been loaded, we import the cleaned and scored dataset that 
+contains the necessary variables required for testing the hypotheses associated with
+the research study. The code below imports the data table into our local R environment.
 
 ```{r dataset, include = TRUE}
 val_data <- read_rds(file = "~/R-lang/FireEdge/data/FireEdge_data.Rds")
 ```
 
-The original dataset includes item-level data, dimension-level data in conjunction with various
-other information concerning the criteria. As none of this is required to conduct
+The original dataset includes item-level data and dimension-level data in conjunction with various
+other variables concerning the criteria. As none of this is required to conduct
 the validation study, we focus on the overall composite score with the criteria
 of job performance, and drop all remaining variables from the data table.
 
@@ -86,7 +90,7 @@ In the condensed data table, we have the following variables:
 * Study is the location of the agency participating in the validation study.
 * Gender is the gender identity of the study participant.
 * Race is the race of the study participant.
-* FireEdge_Score is the final score on the FireEdge test.
+* FireEdge_Score is the final score on the *FireEdge* test.
 * JobPerformance is the supervisory rating of job performance.
 
 ## 3. Descriptive Statistics
@@ -95,7 +99,7 @@ Next, we begin to investigate the descriptive statistics concerning the
 supervisor ratings of job performance. The code below creates a table of
 information broken down by Study location, such as the average job performance
 score, the standard deviation of the distribution, and the minimum and maximum
-scores.
+job performance scores
 
 ```{r, descriptives_jp, include=TRUE}
 val_data %>%
@@ -114,8 +118,10 @@ val_data %>%
 We see that the agency in Alabama had a total of 27  missing cases of performance
 ratings, while the Colorado agency had a total of 13 missing cases. The average
 job performance ratings are all consistent across the three study locations, as are 
-the standard deviations, minimum and maximum scores. Next, we perform the same 
-type of analysis for the *FireEdge* score.
+the standard deviations, minimum and maximum scores. We therefore are able to
+combine the three agencies together to increase the power of a single, more
+powerful predictive study. Our next analysis performs a similar operation on the
+*FireEdge* score.
 
 ```{r, descriptives_fs, include=TRUE}
 val_data %>%
@@ -133,7 +139,10 @@ val_data %>%
 ```
 The means all fall in line quite closely, with an average score of around a 75.00
 and a standard deviation around 6.5. Minimum and maximum scores were all quite
-consistent across the three studies. Once we have taken a look at these 
+consistent across the three studies. Exploratory data analysis helps us better
+understand the nature of the data, and the types of relationships we expect to 
+see. It informs the next steps we take in our research study and ensure the 
+assumptions we make are correct and valid. Once we have taken a look at these 
 statistics, we create our finalized dataset by removing the missing data that
 we observed in the job performance ratings with the following code.
 
@@ -144,8 +153,9 @@ val_data %>%
 ```
 
 We remove the missing data points and determine we have a total of `r nrow(val_data)`
-rows of data to use for the validation study. Next, we create a series of charts
-to determine the number of participants based on Race, Gender and Study.
+cases for our hypothesis testing. Next, we create a series of visualizations
+to determine the number of participants based on Race, Gender and Study that are
+in our study.
 
 The first pie chart presents counts of Gender represented in the validation study.
 Unfortunately, a general trend in firefighting is that males usually outweigh
@@ -201,9 +211,9 @@ val_data %>%
 The final chart outlines the location from which participants were pulled. 
 The majority of participants derived from a firefighting agency located in 
 Colorado, with 64.6% of the total sample. Maryland was next, with 21.2% and 
-Alabama was last, with 14.1%. As we do not expect the firefighting job to differ
-significantly across the nation, for the purposes of streamlining this validation
-study we collapsed all three agencies into a single study.
+Alabama was last, with 14.1%. Such a diverse sample helps ensure we obtain
+data points from all across the nation. For the purposes of this study, we collapse
+all three agencies into a single study.
 
 ```{r Study_PieChart, include=TRUE, fig.align='center'}
 val_data %>%
@@ -224,11 +234,11 @@ val_data %>%
 
 In summary, the sample size obtained for the purposes of this validation study
 were found to be representative of the population in general. We therefore move
-on to conducting a correlation and linear regression modeling.
+on to conducting our statistical significance testing.
 
 ## 4. Pearson Correlation Analysis
 
-A correlation coefficient seeks to establish a relationship between two 
+A correlation coefficient seeks to establish an empirical relationship between two 
 variables. In this case, we seek to measure the level of association between the
 *FireEdge* test score and job performance ratings. A positive correlation 
 coefficient would indicate that as one variable increases, so does the other. A
@@ -240,13 +250,13 @@ correlation will yield a significant, positive association between the two
 variables.
 
 THe results of the analysis are presented below. Specifically, we obtained a
-correlation coefficient of .273. We then conducted a Student's T-test on the
+correlation coefficient of *r* = .273. We then conducted a Student's T-test on the
 value to test whether the obtained correlation is significantly different than 
 zero. The results of the t-test were very significant, *t*(295) = 4.884, *p* < .001. 
 This tells us that the calculated correlation, or relationship between the
 two variables is significantly different than zero, which helps us gain
-certainty around the relationship between *FireEdge* test scores and job
-performance.
+certainty around the relationship between *FireEdge* test scores and supervisor
+ratings of job performance.
 
 ```{r correlations, include=TRUE}
 cor.test(x = val_data$FireEdge_Score,
@@ -255,21 +265,27 @@ cor.test(x = val_data$FireEdge_Score,
          method = "pearson")
 ```
 
-We conclude with the t-test that the observed correlation does empirically
-demonstrate a significant relationship between test scores and job performance.
-The linear regression model will further provide a visual means of investigating
-the degree of this relationship.
+The confidence interval lets us know that we are 95% confident that our correlation
+coefficient lies between 0.164 and 0.375. Since this range does **not** include 
+the value 0, the t-test will, by default, be significant. We retain the alternative
+hypothesis and demonstrate a relationship between test scores on the *FireEdge* and
+job performance ratings. The linear regression model will further provide a visual 
+means of investigating the degree of this relationship.
 
 ## 5. Linear Regression Model
 
-A linear regression model seeks to summarize the relationship between two
+A linear regression model seeks to summarize the relationship between two (or more)
 variables with a single line of best fit. This line of best fit seeks to minimize
-the error between an actual observed value and the predicted value. Furthermore,
-such a relationship could then be used to infer somebody's job performance rating
-given their score on the *FireEdge* test. The code below runs the linear regression
+the error between an actual observed value and the predicted value, known as a residual. 
+Furthermore, such a relationship could then be used to infer somebody's job performance rating
+given their score on the *FireEdge* test. Say, for example, we observe a test score
+of 85.00%, but do not have a performance rating for a participant who scored an 85%,
+how would we go about determining their estimated job performance? With linear
+regression, we'd have a way to impute the 85% into the linear model to obtain
+an estimated job performance score. The code below runs the linear regression
 where the *FireEdge* test score is the predictor, or, independent variable. The
-dependent variable, or outome variable, is job performance. We seek to predict 
-job performance from test scores.
+dependent variable, or outcome variable, is job performance. We seek to predict 
+job performance from a participant's test score.
 
 ```{r}
 summary(
@@ -278,16 +294,17 @@ lm(JobPerformance ~ FireEdge_Score,
 )
 ```
 
-The linear regression model looks promising with the results from the model. Including
+The linear regression model looks promising when we inspect the regression results. Including
 the *FireEdge* score as a predictor had a significant t-test value of *t* = 4.884, 
-*p* < .000. The multiple r-squared was unfortunately not that high, with only .07
-of the observed variance being explained by the predictor. The overall F-test was
-additionally significant, indicating that the model as a whole was significant at 
-*p* < .000. The visualization below shows the extent of the relationship in 
+*p* < .000 (a similar value to what we saw in the correlation analysis - for good 
+reason, they are nearly the same test here). The multiple r-squared was unfortunately 
+not that high, with only .07 of the observed variance being explained by the predictor. 
+The overall F-test was additionally significant, indicating that the model as a whole 
+was significant at*p* < .000. The visualization below shows the extent of the relationship in 
 addition with the relevant histograms for each of the two variables drawn in the
 margins. We see that the *FireEdge* test scores are negatively skewed, with a 
 significant portion of scores on the higher end of the scale. The job performance
-ratings followed more of a normal distribution.
+ratings followed a more normal distribution.
 
 ```{r Regression_Graphic, include=TRUE, fig.align='center', message=FALSE}
 lin_reg_graph <-
@@ -312,11 +329,17 @@ lin_reg_graph_final
 ## 6. Analysis of Variance by Race
 
 Our final analysis seeks to determine if participants who identified across
-different ethnicities performed significantly better or worse than any other
-class. Ideally, we'd like to ensure our test functions similarly across 
-Race, Gender, etc. If there are differences in the test by Race, we could
-potentially have to investigate further in order to determine which component
-of the examination is driving the differences.
+different racial groups performed significantly better or worse than any other
+class, as evaluated by *FireEdge* test scores. Ideally, we'd like to ensure our test 
+functions similarly across Race. If there are differences in the test 
+by Race, we could potentially have to investigate further in order to determine 
+which component of the examination is driving the differences. This analysis
+would again be repeated on a more normative dataset to ensure the trends are
+similar across a wider audience of applicants. Since the literature points to
+known differences in means across Race on cognitive-based tests, this examination
+will seek to ensure the test we have developed is internally sound and bias-free.
+We do not investigate gender differences in cognitive tests because, research has
+shown consistently, that females outperform males on such tests.
 
 ```{r ANOVA_Race, include=TRUE}
 summary(
@@ -325,17 +348,23 @@ aov(FireEdge_Score ~ Race, data = val_data)
 ```
 
 The Analysis of Variance, or, ANOVA for short, measures the variance across
-the different racial groups on *FireEdge* test scores. The resulting test 
-statistic, known as the omnibus F-ratio, was non-significant in this study:
-*F*(4, 274) = 0.663, *p* > .618. The *p* value would need to be less than .05
-in order for us to reject the null hypothesis and conclude that significant
-differences exist across Race on *FireEdge* test scores.
+the different racial groups on *FireEdge* test scores. The test itself would
+not tell us exactly which groups differ, post-hoc analyses would need to be
+conduced to determine which groups significantly differ from the other. The 
+resulting test statistic, known as the omnibus F-ratio, was non-significant 
+in this study: *F*(4, 274) = 0.663, *p* > .618. The *p* value would need to be 
+less than .05 in order for us to reject the null hypothesis and conclude that 
+significant differences exist across Race on *FireEdge* test scores.
 
 Finally, an easy-to-explain way to visually demonstrate the disparity between
-means on a continuous variable is a boxplot chart. Such a chart places the 
-score value on the y-axis, and the various levels of racial identity on the 
-x-axis. The degree of height difference between the various boxes show the
-levels of difference.
+means on a continuous variable by categorical groups is a boxplot chart. Such a 
+chart places the score value on the y-axis, and the various levels of racial 
+identity on the x-axis. The degree of height difference between the various 
+boxes show the levels of difference in test scores, with black circles representing
+outliers, or cases that are significantly different from the normal range of
+cases. If enough outliers are present in the data, their removal may be mandated
+if they significantly drag down the overall mean of the variable, since outliers
+exert a significant influence on the calculation of an average score.
 
 ```{r Boxplot_ANOVA, include=TRUE, fig.align='center'}
 val_data %>% 
@@ -357,9 +386,18 @@ significant Pearson product moment correlation (*r* = .273) being observed in
 the study. Next, a linear regression model was run to regress test scores on
 job performance, which resulted in the line of best fit trending in an upward
 and positive direction. Finally, an analysis of variance was conducted in order
-to ascertain no bias existed in test scores across different Ethnicities.
+to ascertain no bias existed in test scores across different races
 
 In summary, the conclusions reached in this study were significant, providing
 empirical evidence that the *FireEdge* does indeed predict job performance scores.
 Such information can be used to better inform the clients who use our products.
+The relationships established in this research study also lend credence to the
+entire process of developing our customized internal assessments, as the test
+content, when properly modeled, does predict a focal criteria of interest for
+clients. Further analyses could be conducted to determine facets of the *FireEdge*
+which do not predict as well as others, and attempt to iterate on the examination
+to help deliver an even better product or solution. Larger scale analyses could
+also be conducted after the test has been deployed to the population. Wide-scale
+validation studies could help provide significant sample sizes to bolster the
+results found in this study.
 
