@@ -3,8 +3,13 @@ title: "Validating the *FireEdge* Assessment"
 author: "Robert W. Szarek"
 date: "March 10, 2021"
 output:
-  pdf_document: default
+  pdf_document: 
+    fig_width: 4
+    latex_engine: xelatex
   html_document: default
+header-includes:
+- \usepackage{fontspec}
+- \setmainfont{Arial}
 ---
 
 This document was created as an R Markdown file from within R-Studio. The
@@ -12,7 +17,8 @@ benefits of using an R Markdown file for scientific research include the ability
 weave code and theory into a single document, all the while providing 
 the reader a clear look into the analyses conducted to reach the various
 conclusions presented. Such reproducible analyses help make 
-scientific studies more transparent and accessible to stakeholders.
+scientific studies more transparent and accessible to stakeholders. All analyses
+in this report were ran using the programming language R, version 4.0.2.
 
 ## 1. Overview and Context
 
@@ -29,8 +35,7 @@ benefits of a successful research study include:
 
 * Marketing *FireEdge* as a proven screening device to select top-performing talent
 * Providing a legal framework for using the *FireEdge* for selection
-* Demonstrating criterion-related test validity
-* Helping minimize bias and ensure the test is fair
+* Helping minimize bias and ensure the test is fair across racial/gender groups
 
 For the purposes of testing our hypotheses, we employed three unique statistical
 techniques:
@@ -129,7 +134,7 @@ combine the three agencies together to increase the power of a single, more
 powerful predictive study. Our next analysis performs a similar operation on the
 *FireEdge* score.
 
-```{r, descriptives_fs, include=TRUE}
+```{r, descriptives_fs, include=TRUE, echo=TRUE}
 val_data %>%
   group_by(Study) %>%
   summarise(
@@ -171,7 +176,7 @@ degrees of difference are therefore not uncommon and care must be taken to
 ensure the study does attempt to maximize female participation rates to the
 highest degree possible.
 
-```{r Gender_PieChart, include=TRUE,fig.align='center'}
+```{r Gender_PieChart, include=TRUE,fig.align='center', fig.height=3}
 val_data %>%
   count(Gender) %>%
   filter(Gender == "Male" | Gender == "Female") %>% 
@@ -179,12 +184,12 @@ val_data %>%
   ggplot(aes(x = "", y = n, fill = Gender)) +
   geom_bar(stat = "identity",  color = "white", show.legend = TRUE) +
   coord_polar("y") +
-  theme_void(base_size = 16) +
+  theme_void(base_size = 12) +
   scale_fill_manual(name= "", values = c("#CCCCCC", "#9E1C24")) +
     labs(x = "",
          y = "",
          title = "Gender") +
-  geom_label(aes(label = Percentage), size=5, color = c("black", "white"), 
+  geom_label(aes(label = Percentage), size=3, color = c("black", "white"), 
              position = position_stack(vjust=0.5),show.legend = FALSE) +
   theme(legend.position = "top")
 ```
@@ -196,7 +201,7 @@ minority candidates for the study to ensure the sample represents the population
 of firefighters in general. The original stratified sampling plan sought to 
 ensure minorities were equally represented within the sampling plan.
 
-```{r Race_PieChart, include=TRUE, fig.align='center'}
+```{r Race_PieChart, include=TRUE, fig.align='center', fig.height=3}
 val_data %>%
   count(Race) %>%
   filter(Race == "Hispanic" | Race == "White" | Race == "Black") %>% 
@@ -204,12 +209,12 @@ val_data %>%
   ggplot(aes(x = "", y = n, fill = Race)) +
   geom_bar(stat = "identity",  color = "white", show.legend = TRUE) +
   coord_polar("y") +
-  theme_void(base_size = 16) +
+  theme_void(base_size = 12) +
   scale_fill_manual(name= "", values = c( "#EA1D2E", "#CCCCCC", "#9E1C24")) +
     labs(x = "",
          y = "",
          title = "Race") +
-  geom_label(aes(label = Percentage), size=5, color = c("white", "black", "white"), 
+  geom_label(aes(label = Percentage), size=3, color = c("white", "black", "white"), 
              position = position_stack(vjust=0.5),show.legend = FALSE) +
   theme(legend.position = "top")
 ```
@@ -221,19 +226,19 @@ Alabama was last, with 14.1%. Such a diverse sample helps ensure we obtain
 data points from all across the nation. For the purposes of this study, we collapse
 all three agencies into a single study.
 
-```{r Study_PieChart, include=TRUE, fig.align='center'}
+```{r Study_PieChart, include=TRUE, fig.align='center', fig.height=3}
 val_data %>%
   count(Study) %>%
   mutate(Percentage = scales::percent(n / sum(n))) %>%
   ggplot(aes(x = "", y = n, fill = Study)) +
   geom_bar(stat = "identity",  color = "white", show.legend = TRUE) +
   coord_polar("y") +
-  theme_void(base_size = 16) +
+  theme_void(base_size = 12) +
   scale_fill_manual(name= "", values = c("#CCCCCC", "#9E1C24", "#EA1D2E")) +
     labs(x = "",
          y = "",
          title = "Study") +
-  geom_label(aes(label = Percentage), size=5, color = c("black", "white", "white"), 
+  geom_label(aes(label = Percentage), size=3, color = c("black", "white", "white"), 
              position = position_stack(vjust=0.5),show.legend = FALSE) +
   theme(legend.position = "top")
 ```
@@ -313,23 +318,23 @@ margins. We see that the *FireEdge* test scores are negatively skewed, with a
 significant portion of scores on the higher end of the scale. The job performance
 ratings followed a more normal distribution.
 
-```{r Regression_Graphic, include=TRUE, fig.align='center', message=FALSE}
+```{r Regression_Graphic, include=TRUE, fig.align='center', message=FALSE,fig.width=5}
 lin_reg_graph <-
 ggplot(val_data, aes(FireEdge_Score, JobPerformance)) +
-  geom_point(size = 4, color = "black") +
+  geom_point(size = 3, color = "black") +
   geom_smooth(method = "lm", se = TRUE) +
   labs(y = "Job Performance",
        x = "FireEdge Score") +
-  geom_point(size = 4.5, color = "#B11822") +
+  geom_point(size = 3, color = "#B11822") +
   theme_bw(base_family = "sans", base_size = 12) +
-  theme(text = element_text(size = 14),
+  theme(text = element_text(size = 12),
         axis.text = element_text(colour = "black"))
 
 lin_reg_graph_final <-
   ggExtra::ggMarginal(lin_reg_graph,
                       type = "histogram",
                       fill = "#B11822",
-                      size = 5)
+                      size = 3)
 
 lin_reg_graph_final
 ```
@@ -374,12 +379,12 @@ cases. If enough outliers are present in the data, their removal may be mandated
 if they significantly drag down the overall mean of the variable, since outliers
 exert a significant influence on the calculation of an average score.
 
-```{r Boxplot_ANOVA, include=TRUE, fig.align='center'}
+```{r Boxplot_ANOVA, include=TRUE, fig.align='center', fig.height=3}
 val_data %>% 
   filter(Race == "Black" | Race == "White" | Race == "Hispanic") %>% 
   ggplot(aes(x=Race, y=FireEdge_Score)) + 
   geom_boxplot(fill = "#9E1C24", width= 0.5, alpha = 0.9) +
-  theme_minimal(base_size = 16,base_family = "sans") +
+  theme_minimal(base_size = 12,base_family = "sans") +
     labs(x = "Race/Ethnicity",
          y = "FireEdge Score") +
   theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
@@ -410,3 +415,24 @@ also be conducted after the test has been deployed to the population, with sampl
 sizes into the thousands. We'd be able to re-calculate several of the statistics on
 a pre-established basis to ensure our test continues to function as intended once
 deployed to the population.
+
+## 8. Limitations
+
+Several limitations were associated with the study. First, this was an example
+of a concurrent validation research study. Concurrent-designs are problematic
+because they utilize participants who are already firefighters. Due to this, 
+test scores may be higher than what would be observed in the population of test
+takers, because these participants are already accustomed to the job. Secondly,
+more diversity would certainly be helpful in the testing process, including
+recruiting more females to participate in such studies. By raising the sample size,
+we also ensure the data represents the larger population and results in more
+stable estimates of the means and standard deviations we would observe in general.
+Finally, correlation coefficients were not corrected for unreliability
+or range restriction. Both concepts being significant issues in the study. Range
+restriction refers to a statistical artifact where you limit the types of scores
+you see in your sample because of a qualified applicant pool. The concept of
+unreliability is paramount to testing, because no test is perfectly reliable. In 
+other words, people's score on a test may vary from time to time, and therefore,
+is subject to a certain degree of "error" or bias. Such corrections would help
+increase the observed correlation coefficient and effectively boost the findings
+of the research study.
